@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "75967668184",
+    "project_id": "afrilegacy-e50fb",
+    "storage_bucket": "afrilegacy-e50fb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:75967668184:android:32a7c06397e387943c1cad",
+        "android_client_info": {
+          "package_name": "com.example.afrilegacy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "75967668184-mteksl5sktvkikrd0jh4vvbf7n9b9n69.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.afrilegacy",
+            "certificate_hash": "730c649a445b7292ae4c93c057a83f6235fe87a5"
+          }
+        },
+        {
+          "client_id": "75967668184-a14vhh1cuj4l66hrsl7n0tcqcnhie0sh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDc7PKTevHnkI7CMEJ50OxV8VQKJOFyfBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "75967668184-a14vhh1cuj4l66hrsl7n0tcqcnhie0sh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
