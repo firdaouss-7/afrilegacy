@@ -1,6 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:afrilegacy/views/auth/welcome_screen.dart';
+import 'package:afrilegacy/views/home/home_screen.dart';
+import 'package:afrilegacy/views/admin/admin_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -75,7 +79,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _particlesController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20),
+      duration: const Duration(seconds: 6),
     )..repeat();
 
     _quoteController = AnimationController(
@@ -85,7 +89,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _progressController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20),
+      duration: const Duration(seconds: 6),
     );
 
     _patternController = AnimationController(
@@ -132,13 +136,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _startSequence() async {
     // Logo entre
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 200));
     if (!mounted) return;
     _logoController.forward();
     _progressController.forward();
 
     // Première citation
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
     setState(() {
       _showQuote = true;
@@ -148,28 +152,81 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Changer les citations toutes les 5 secondes
     for (int i = 1; i < _quotes.length; i++) {
-      await Future.delayed(const Duration(seconds: 5));
+      await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return;
       await _quoteController.reverse();
       setState(() => _currentQuote = i);
       _quoteController.forward();
     }
 
-    // Attendre la fin des 20 secondes
-    await Future.delayed(const Duration(seconds: 3));
+    // Attendre la fin
+    await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
 
-    // Transition
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const WelcomeScreen(),
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 1200),
-      ),
-    );
+    // ✅ VÉRIFICATION DU RÔLE ADMIN
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      // Non connecté → WelcomeScreen
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const WelcomeScreen(),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 1200),
+        ),
+      );
+      return;
+    }
+
+    // Connecté → vérifier le rôle dans Firestore (avec retry)
+    String role = 'user';
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        role = userDoc.data()?['role'] ?? 'user';
+        print('👤 Rôle trouvé: $role');
+        print('📧 Email: ${user.email}');
+        print('🆔 UID: ${user.uid}');
+        break;
+      } catch (e) {
+        print('⚠️ Firestore attempt ${attempt + 1} failed: $e');
+        if (attempt < 2) {
+          await Future.delayed(const Duration(seconds: 1));
+        }
+      }
+    }
+
+    if (role == 'admin') {
+      print('✅ REDIRECTION VERS ADMIN DASHBOARD');
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const AdminScreen(),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 1200),
+        ),
+      );
+    } else {
+      print('❌ REDIRECTION VERS HOME SCREEN (role = $role)');
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const HomeScreen(),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 1200),
+        ),
+      );
+    }
   }
 
   @override
@@ -528,7 +585,6 @@ class _AfricanPatternPainter extends CustomPainter {
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
-    // Motifs géométriques africains dans les coins
     _drawTrianglePattern(canvas, size, paint);
     _drawDiamondPattern(canvas, size, paint);
   }
@@ -579,6 +635,8 @@ class _ParticlesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Guard against zero size (causes NaN)
+    if (size.width <= 0 || size.height <= 0) return;
     final random = Random(42);
     final colors = [
       const Color(0xFFC4A96A),

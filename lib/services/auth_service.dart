@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
@@ -34,8 +36,18 @@ class AuthService {
         email: email.trim(),
         password: password,
       );
+
       await credential.user?.updateDisplayName(nom);
       await credential.user?.sendEmailVerification();
+
+      // ✅ Créer le document Firestore automatiquement
+      await _createUserDocument(
+        uid: credential.user!.uid,
+        nom: nom,
+        email: email.trim(),
+        photoUrl: null,
+      );
+
       return credential;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthError(e);
@@ -57,12 +69,43 @@ class AuthService {
         idToken: googleAuth.idToken,
       );
 
-      return await _auth.signInWithCredential(credential);
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // ✅ Créer le document seulement si c'est la première connexion
+      final isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
+      if (isNewUser) {
+        await _createUserDocument(
+          uid: userCredential.user!.uid,
+          nom: userCredential.user?.displayName ?? 'Utilisateur',
+          email: userCredential.user?.email ?? '',
+          photoUrl: userCredential.user?.photoURL,
+        );
+      }
+
+      return userCredential;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthError(e);
     } catch (e) {
       throw 'Erreur Google Sign-In : $e';
     }
+  }
+
+  // ==================== CRÉER DOCUMENT USER ====================
+
+  Future<void> _createUserDocument({
+    required String uid,
+    required String nom,
+    required String email,
+    String? photoUrl,
+  }) async {
+    await _firestore.collection('users').doc(uid).set({
+      'uid': uid,
+      'nom': nom,
+      'email': email,
+      'role': 'user', // par défaut → user
+      'photoUrl': photoUrl ?? '',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // ==================== DÉCONNEXION ====================
