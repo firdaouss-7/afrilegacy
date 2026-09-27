@@ -22,7 +22,7 @@ Projet réalisé dans le cadre du module Développement Mobile & Métavers, 2èm
 - **Visualisation 3D** : model_viewer_plus
 - **Architecture** : MVVM (Model–View–ViewModel), contrôle d'accès à deux niveaux (utilisateur / administrateur)
 
-## Projet réalisé en équipe (Groupe 10)
+## Projet réalisé en équipe 
 
 - Lassana Kouma
 - Firdaouss Zai
